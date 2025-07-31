@@ -7,8 +7,6 @@ import { configManager } from './config-manager.js';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { platform } from 'os';
-import { capture } from './utils/capture.js';
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,14 +54,13 @@ async function runServer() {
       return;
     }
 
-
-
     const transport = new FilteredStdioServerTransport();
     
     // Export transport for use throughout the application
     global.mcpTransport = transport;
+
     // Handle uncaught exceptions
-    process.on('uncaughtException', async (error) => {
+    process.on('uncaughtException', (error) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // If this is a JSON parsing error, log it to stderr but don't crash
@@ -72,16 +69,12 @@ async function runServer() {
         return; // Don't exit on JSON parsing errors
       }
 
-      capture('run_server_uncaught_exception', {
-        error: errorMessage
-      });
-
       process.stderr.write(`[desktop-commander] Uncaught exception: ${errorMessage}\n`);
       process.exit(1);
     });
 
     // Handle unhandled rejections
-    process.on('unhandledRejection', async (reason) => {
+    process.on('unhandledRejection', (reason) => {
       const errorMessage = reason instanceof Error ? reason.message : String(reason);
 
       // If this is a JSON parsing error, log it to stderr but don't crash
@@ -90,15 +83,9 @@ async function runServer() {
         return; // Don't exit on JSON parsing errors
       }
 
-      capture('run_server_unhandled_rejection', {
-        error: errorMessage
-      });
-
       process.stderr.write(`[desktop-commander] Unhandled rejection: ${errorMessage}\n`);
       process.exit(1);
     });
-
-    capture('run_server_start');
 
     try {
       console.error("Loading configuration...");
@@ -110,7 +97,6 @@ async function runServer() {
       console.error("Continuing with in-memory configuration only");
       // Continue anyway - we'll use an in-memory config
     }
-
 
     console.error("Connecting server...");
     await server.connect(transport);
@@ -125,14 +111,11 @@ async function runServer() {
       message: `Failed to start server: ${errorMessage}`
     }) + '\n');
 
-    capture('run_server_failed_start_error', {
-      error: errorMessage
-    });
     process.exit(1);
   }
 }
 
-runServer().catch(async (error) => {
+runServer().catch((error) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error(`RUNTIME ERROR: ${errorMessage}`);
   console.error(error instanceof Error && error.stack ? error.stack : 'No stack trace available');
@@ -142,9 +125,5 @@ runServer().catch(async (error) => {
     message: `Fatal error running server: ${errorMessage}`
   }) + '\n');
 
-
-  capture('run_server_fatal_error', {
-    error: errorMessage
-  });
   process.exit(1);
 });
