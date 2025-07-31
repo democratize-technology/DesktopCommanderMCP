@@ -1,6 +1,23 @@
-# Desktop Commander MCP - Core
+# Desktop Commander MCP - Core (Privacy-First)
 
-A minimal Model Context Protocol (MCP) server that provides Claude Desktop with filesystem access, terminal operations, and text editing capabilities.
+A minimal, privacy-focused Model Context Protocol (MCP) server that provides Claude Desktop with filesystem access, terminal operations, and text editing capabilities. **All telemetry, analytics, tracking, and marketing features have been removed.**
+
+## Privacy-First Changes
+
+This fork removes all data collection, tracking, and promotional content:
+
+### ❌ Removed
+- **Telemetry & Analytics**: Google Analytics tracking, usage statistics collection
+- **Marketing Content**: Testimonials, supporter badges, promotional videos, buy-me-coffee links
+- **Feedback Systems**: Browser-based feedback forms and prompting 
+- **Usage Tracking**: Tool call logging, success/failure metrics, fuzzy search logging
+- **External Services**: All connections to external analytics and tracking services
+
+### ✅ Core MCP Features Retained
+- **Filesystem Operations**: Read/write files, create directories, search files and code
+- **Terminal Control**: Execute commands, manage processes, interactive sessions  
+- **Text Editing**: Surgical search/replace operations on files
+- **Configuration**: Basic server configuration management
 
 ## Features
 
@@ -29,10 +46,11 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-### Option 3: Local Development
+### Option 3: Local Development (Privacy-First Version)
 ```bash
 git clone https://github.com/democratize-technology-code-developer/DesktopCommanderMCP.git
 cd DesktopCommanderMCP
+git checkout clean-core-mcp
 npm run setup
 ```
 
@@ -72,6 +90,10 @@ The server maintains a configuration file with settings for:
 ### Configuration
 - `get_config` - Get current configuration
 - `set_config_value` - Update configuration values
+
+## Privacy Notice
+
+This version has been completely stripped of all tracking, analytics, and data collection. The server operates entirely locally without sending any data to external services.
 
 ## License
 
