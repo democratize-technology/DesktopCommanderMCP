@@ -2,12 +2,10 @@ import { readFile, writeFile, readFileInternal, validatePath } from './filesyste
 import fs from 'fs/promises';
 import { ServerResult } from '../types.js';
 import { recursiveFuzzyIndexOf, getSimilarityRatio } from './fuzzySearch.js';
-import { capture } from '../utils/capture.js';
 import { EditBlockArgsSchema } from "./schemas.js";
 import path from 'path';
 import { detectLineEnding, normalizeLineEndings } from '../utils/lineEndingHandler.js';
 import { configManager } from '../config-manager.js';
-import { fuzzySearchLogger, type FuzzySearchLogEntry } from '../utils/fuzzySearchLogger.js';
 
 interface SearchReplace {
     search: string;
@@ -28,89 +26,9 @@ interface FuzzyMatch {
  */
 const FUZZY_THRESHOLD = 0.7;
 
-/**
- * Extract character code data from diff
- * @param expected The string that was searched for
- * @param actual The string that was found
- * @returns Character code statistics
- */
-function getCharacterCodeData(expected: string, actual: string): {
-    report: string;
-    uniqueCount: number;
-    diffLength: number;
-} {
-    // Find common prefix and suffix
-    let prefixLength = 0;
-    const minLength = Math.min(expected.length, actual.length);
-
-    // Determine common prefix length
-    while (prefixLength < minLength &&
-           expected[prefixLength] === actual[prefixLength]) {
-        prefixLength++;
-    }
-
-    // Determine common suffix length
-    let suffixLength = 0;
-    while (suffixLength < minLength - prefixLength &&
-           expected[expected.length - 1 - suffixLength] === actual[actual.length - 1 - suffixLength]) {
-        suffixLength++;
-    }
-    
-    // Extract the different parts
-    const expectedDiff = expected.substring(prefixLength, expected.length - suffixLength);
-    const actualDiff = actual.substring(prefixLength, actual.length - suffixLength);
-    
-    // Count unique character codes in the diff
-    const characterCodes = new Map<number, number>();
-    const fullDiff = expectedDiff + actualDiff;
-    
-    for (let i = 0; i < fullDiff.length; i++) {
-        const charCode = fullDiff.charCodeAt(i);
-        characterCodes.set(charCode, (characterCodes.get(charCode) || 0) + 1);
-    }
-    
-    // Create character codes string report
-    const charCodeReport: string[] = [];
-    characterCodes.forEach((count, code) => {
-        // Include character representation for better readability
-        const char = String.fromCharCode(code);
-        // Make special characters more readable
-        const charDisplay = code < 32 || code > 126 ? `\\x${code.toString(16).padStart(2, '0')}` : char;
-        charCodeReport.push(`${code}:${count}[${charDisplay}]`);
-    });
-    
-    // Sort by character code for consistency
-    charCodeReport.sort((a, b) => {
-        const codeA = parseInt(a.split(':')[0]);
-        const codeB = parseInt(b.split(':')[0]);
-        return codeA - codeB;
-    });
-    
-    return {
-        report: charCodeReport.join(','),
-        uniqueCount: characterCodes.size,
-        diffLength: fullDiff.length
-    };
-}
-
 export async function performSearchReplace(filePath: string, block: SearchReplace, expectedReplacements: number = 1): Promise<ServerResult> {
-    // Get file extension for telemetry using path module
-    const fileExtension = path.extname(filePath).toLowerCase();
-    
-    // Capture file extension and string sizes in telemetry without capturing the file path
-    capture('server_edit_block', {
-        fileExtension: fileExtension,
-        oldStringLength: block.search.length,
-        oldStringLines: block.search.split('\n').length,
-        newStringLength: block.replace.length,
-        newStringLines: block.replace.split('\n').length,
-        expectedReplacements: expectedReplacements
-    });
     // Check for empty search string to prevent infinite loops
     if (block.search === "") {
-    
-        // Capture file extension in telemetry without capturing the file path
-        capture('server_edit_block_empty_search', {fileExtension: fileExtension, expectedReplacements});
         return {
             content: [{ 
                 type: "text", 
@@ -118,7 +36,6 @@ export async function performSearchReplace(filePath: string, block: SearchReplac
             }],
         };
     }
-    
 
     // Read file directly to preserve line endings - critical for edit operations
     const validPath = await validatePath(filePath);
@@ -126,7 +43,6 @@ export async function performSearchReplace(filePath: string, block: SearchReplac
     
     // Make sure content is a string
     if (typeof content !== 'string') {
-        capture('server_edit_block_content_not_string', {fileExtension: fileExtension, expectedReplacements});
         throw new Error('Wrong content for file ' + filePath);
     }
     
@@ -176,12 +92,10 @@ export async function performSearchReplace(filePath: string, block: SearchReplac
         if (maxLines > MAX_LINES) {
             const problemText = searchLines > replaceLines ? 'search text' : 'replacement text';
             warningMessage = `\n\nWARNING: The ${problemText} has ${maxLines} lines (maximum: ${MAX_LINES}).
-            
-RECOMMENDATION: For large search/replace operations, consider breaking them into smaller chunks with fewer lines.`;
+            \nRECOMMENDATION: For large search/replace operations, consider breaking them into smaller chunks with fewer lines.`;
         }
         
         await writeFile(filePath, newContent);
-        capture('server_edit_block_exact_success', {fileExtension: fileExtension, expectedReplacements, hasWarning: warningMessage !== ""});
         return {
             content: [{ 
                 type: "text", 
@@ -192,7 +106,6 @@ RECOMMENDATION: For large search/replace operations, consider breaking them into
     
     // If exact match found but count doesn't match expected, inform the user
     if (count > 0 && count !== expectedReplacements) {
-        capture('server_edit_block_unexpected_count', {fileExtension: fileExtension, expectedReplacements, expectedReplacementsCount: count});
         return {
             content: [{ 
                 type: "text", 
@@ -216,53 +129,11 @@ RECOMMENDATION: For large search/replace operations, consider breaking them into
         // Calculate execution time in milliseconds
         const executionTime = performance.now() - startTime;
         
-        // Generate diff and gather character code data
+        // Generate diff
         const diff = highlightDifferences(block.search, fuzzyResult.value);
-        
-        // Count character codes in diff
-        const characterCodeData = getCharacterCodeData(block.search, fuzzyResult.value);
-        
-        // Create comprehensive log entry
-        const logEntry: FuzzySearchLogEntry = {
-            timestamp: new Date(),
-            searchText: block.search,
-            foundText: fuzzyResult.value,
-            similarity: similarity,
-            executionTime: executionTime,
-            exactMatchCount: count,
-            expectedReplacements: expectedReplacements,
-            fuzzyThreshold: FUZZY_THRESHOLD,
-            belowThreshold: similarity < FUZZY_THRESHOLD,
-            diff: diff,
-            searchLength: block.search.length,
-            foundLength: fuzzyResult.value.length,
-            fileExtension: fileExtension,
-            characterCodes: characterCodeData.report,
-            uniqueCharacterCount: characterCodeData.uniqueCount,
-            diffLength: characterCodeData.diffLength
-        };
-        
-        // Log to file
-        await fuzzySearchLogger.log(logEntry);
-        
-        // Combine all fuzzy search data for single capture
-        const fuzzySearchData = {
-            similarity: similarity,
-            execution_time_ms: executionTime,
-            search_length: block.search.length,
-            file_size: content.length,
-            threshold: FUZZY_THRESHOLD,
-            found_text_length: fuzzyResult.value.length,
-            character_codes: characterCodeData.report,
-            unique_character_count: characterCodeData.uniqueCount,
-            total_diff_length: characterCodeData.diffLength
-        };
         
         // Check if the fuzzy match is "close enough"
         if (similarity >= FUZZY_THRESHOLD) {
-            // Capture the fuzzy search event with all data
-            capture('server_fuzzy_search_performed', fuzzySearchData);
-            
             // If we allow fuzzy matches, we would make the replacement here
             // For now, we'll return a detailed message about the fuzzy match
             return {
@@ -270,27 +141,17 @@ RECOMMENDATION: For large search/replace operations, consider breaking them into
                     type: "text", 
                     text: `Exact match not found, but found a similar text with ${Math.round(similarity * 100)}% similarity (found in ${executionTime.toFixed(2)}ms):\n\n` +
                           `Differences:\n${diff}\n\n` +
-                          `To replace this text, use the exact text found in the file.\n\n` +
-                          `Log entry saved for analysis. Use the following command to check the log:\n` +
-                          `Check log: ${await fuzzySearchLogger.getLogPath()}`
-                }],// TODO
+                          `To replace this text, use the exact text found in the file.`
+                }],
             };
         } else {
             // If the fuzzy match isn't close enough
-            // Still capture the fuzzy search event with all data
-            capture('server_fuzzy_search_performed', {
-                ...fuzzySearchData,
-                below_threshold: true
-            });
-            
             return {
                 content: [{ 
                     type: "text", 
                     text: `Search content not found in ${filePath}. The closest match was "${fuzzyResult.value}" ` +
                           `with only ${Math.round(similarity * 100)}% similarity, which is below the ${Math.round(FUZZY_THRESHOLD * 100)}% threshold. ` +
-                          `(Fuzzy search completed in ${executionTime.toFixed(2)}ms)\n\n` +
-                          `Log entry saved for analysis. Use the following command to check the log:\n` +
-                          `Check log: ${await fuzzySearchLogger.getLogPath()}`
+                          `(Fuzzy search completed in ${executionTime.toFixed(2)}ms)`
                 }],
             };
         }
