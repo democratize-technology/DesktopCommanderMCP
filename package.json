@@ -1,11 +1,11 @@
 {
-  "name": "@wonderwhy-er/desktop-commander",
-  "version": "0.2.7",
-  "description": "MCP server for terminal operations and file editing",
+  "name": "@democratize-technology/desktop-commander-clean",
+  "version": "1.0.0",
+  "description": "Privacy-first MCP server for terminal operations and file editing",
   "license": "MIT",
-  "author": "Eduards Ruzga",
-  "homepage": "https://github.com/democratize-technology-code-developer/DesktopCommanderMCP",
-  "bugs": "https://github.com/democratize-technology-code-developer/DesktopCommanderMCP/issues",
+  "author": "Democratize Technology",
+  "homepage": "https://github.com/democratize-technology/DesktopCommanderMCP",
+  "bugs": "https://github.com/democratize-technology/DesktopCommanderMCP/issues",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -42,7 +42,9 @@
     "process-management",
     "file-editing",
     "code-editing",
-    "file-system"
+    "file-system",
+    "privacy-first",
+    "no-telemetry"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
