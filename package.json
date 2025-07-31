@@ -4,8 +4,8 @@
   "description": "MCP server for terminal operations and file editing",
   "license": "MIT",
   "author": "Eduards Ruzga",
-  "homepage": "https://github.com/wonderwhy-er/DesktopCommanderMCP",
-  "bugs": "https://github.com/wonderwhy-er/DesktopCommanderMCP/issues",
+  "homepage": "https://github.com/democratize-technology-code-developer/DesktopCommanderMCP",
+  "bugs": "https://github.com/democratize-technology-code-developer/DesktopCommanderMCP/issues",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -15,16 +15,9 @@
     "setup": "dist/setup-claude-server.js"
   },
   "files": [
-    "dist",
-    "logo.png",
-    "testemonials"
+    "dist"
   ],
   "scripts": {
-    "open-chat": "open -n /Applications/Claude.app",
-    "sync-version": "node scripts/sync-version.js",
-    "bump": "node scripts/sync-version.js --bump",
-    "bump:minor": "node scripts/sync-version.js --bump --minor",
-    "bump:major": "node scripts/sync-version.js --bump --major",
     "build": "tsc && shx cp setup-claude-server.js dist/ && shx chmod +x dist/*.js",
     "watch": "tsc --watch",
     "start": "node dist/index.js",
@@ -34,14 +27,7 @@
     "prepare": "npm run build",
     "clean": "shx rm -rf dist",
     "test": "node test/run-all-tests.js",
-    "test:debug": "node --inspect test/run-all-tests.js",
-    "link:local": "npm run build && npm link",
-    "unlink:local": "npm unlink",
-    "inspector": "npx @modelcontextprotocol/inspector dist/index.js",
-    "logs:view": "npm run build && node scripts/view-fuzzy-logs.js",
-    "logs:analyze": "npm run build && node scripts/analyze-fuzzy-logs.js",
-    "logs:clear": "npm run build && node scripts/clear-fuzzy-logs.js",
-    "logs:export": "npm run build && node scripts/export-fuzzy-logs.js"
+    "inspector": "npx @modelcontextprotocol/inspector dist/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -56,14 +42,7 @@
     "process-management",
     "file-editing",
     "code-editing",
-    "diff",
-    "patch",
-    "block-editing",
-    "file-system",
-    "text-manipulation",
-    "code-modification",
-    "surgical-edits",
-    "file-operations"
+    "file-system"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
@@ -78,8 +57,6 @@
   "devDependencies": {
     "@types/node": "^20.17.24",
     "commander": "^13.1.0",
-    "nexe": "^5.0.0-beta.4",
-    "nodemon": "^3.0.2",
     "shx": "^0.3.4",
     "typescript": "^5.3.3"
   }
