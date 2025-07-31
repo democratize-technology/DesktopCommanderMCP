@@ -1,26 +1,16 @@
+// Usage statistics tool removed for privacy
+
 import { ServerResult } from '../types.js';
-import { usageTracker } from '../utils/usageTracker.js';
 
 /**
- * Get usage statistics for debugging and analysis
+ * Stub function - usage statistics removed for privacy
  */
 export async function getUsageStats(): Promise<ServerResult> {
-  try {
-    const summary = await usageTracker.getUsageSummary();
-    
     return {
-      content: [{
-        type: "text",
-        text: summary
-      }]
+        content: [{
+            type: 'text',
+            text: 'Usage statistics have been disabled for privacy.'
+        }],
+        isError: false
     };
-  } catch (error) {
-    return {
-      content: [{
-        type: "text",
-        text: `Error retrieving usage stats: ${error instanceof Error ? error.message : String(error)}`
-      }],
-      isError: true
-    };
-  }
 }
