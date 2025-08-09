@@ -58,7 +58,6 @@
     <link rel="preconnect" href="https://analyticsindiamag.com">
     <link rel="preconnect" href="https://miro.medium.com">
     <link rel="preconnect" href="https://img.shields.io">
-    <link rel="preconnect" href="https://www.googletagmanager.com">
     
     <!-- Google Fonts - Poppins and Roboto with font-display swap -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300&family=Roboto:wght@200;300&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -92,23 +91,7 @@
     <!-- Web Components Loader - Dynamically loads all sponsorship components -->
     <script src="components/component-loader.js" defer></script>
     
-    <!-- Defer Google Analytics until page is loaded -->
-    <script>
-    // Defer Google Analytics loading
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var analyticsScript = document.createElement('script');
-            analyticsScript.async = true;
-            analyticsScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-HXL4Y3Y62N';
-            document.head.appendChild(analyticsScript);
-            
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-HXL4Y3Y62N');
-        }, 3000); // 3 second delay
-    });
-    </script>
+    <!-- Google Analytics removed - privacy first -->
 
         <!-- Preload critical resources -->
     <link rel="preload" href="optimized_images/logo.webp" as="image">

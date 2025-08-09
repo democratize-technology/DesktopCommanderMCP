@@ -8,25 +8,8 @@ import { version as nodeVersion } from 'process';
 import * as https from 'https';
 import { randomUUID } from 'crypto';
 
-// Google Analytics configuration
-const GA_MEASUREMENT_ID = 'G-NGGDNL0K4L'; // Replace with your GA4 Measurement ID
-const GA_API_SECRET = '5M0mC--2S_6t94m8WrI60A';   // Replace with your GA4 API Secre
-const GA_BASE_URL = `https://www.google-analytics.com/mp/collect?measurement_id=${GA_MEASUREMENT_ID}&api_secret=${GA_API_SECRET}`;
-
-// Generate a unique anonymous ID using UUID - consistent with privacy policy
-let uniqueUserId = 'unknown';
-
-try {
-    // Use randomUUID from crypto module instead of machine-id
-    // This generates a truly random identifier not tied to hardware
-    uniqueUserId = randomUUID();
-} catch (error) {
-    // Fall back to a semi-unique identifier if UUID generation fails
-    uniqueUserId = `random-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
-
-// Setup tracking
-let setupSteps = []; // Track setup progress
+// Setup tracking removed - privacy first
+let setupSteps = []; // Track setup progress locally only
 let setupStartTime = Date.now();
 
 
@@ -139,139 +122,16 @@ function getExecutionContext() {
 // Helper function to get standard environment properties for tracking
 let npmVersionCache = null;
 
-// Enhanced version with step tracking - will replace the original after initialization
+// Tracking properties removed - privacy first
 async function enhancedGetTrackingProperties(additionalProps = {}) {
-  const propertiesStep = addSetupStep('get_tracking_properties');
-  try {
-    if (npmVersionCache === null) {
-      npmVersionCache = await getNpmVersion();
-    }
-
-    const context = getExecutionContext();
-    const version = await getVersion();
-
-    updateSetupStep(propertiesStep, 'completed');
-    return {
-      platform: platform(),
-      node_version: nodeVersion,
-      npm_version: npmVersionCache,
-      execution_context: context.runMethod,
-      is_ci: context.isCI,
-      shell: context.shell,
-      app_version: version,
-      engagement_time_msec: "100",
-      ...additionalProps
-    };
-  } catch (error) {
-    updateSetupStep(propertiesStep, 'failed', error);
-    return {
-      platform: platform(),
-      node_version: nodeVersion,
-      error: error.message,
-      engagement_time_msec: "100",
-      ...additionalProps
-    };
-  }
+  // No-op - telemetry removed for privacy
+  return {};
 }
 
-// Enhanced tracking function with retries and better error handling
-// This replaces the basic implementation for all tracking after initialization
+// Tracking function removed - privacy first
 async function trackEvent(eventName, additionalProps = {}) {
-    const trackingStep = addSetupStep(`track_event_${eventName}`);
-
-    if (!GA_MEASUREMENT_ID || !GA_API_SECRET) {
-        updateSetupStep(trackingStep, 'skipped', new Error('GA not configured'));
-        return;
-    }
-
-    // Add retry capability
-    const maxRetries = 2;
-    let attempt = 0;
-    let lastError = null;
-
-    while (attempt <= maxRetries) {
-        try {
-            attempt++;
-
-            // Get enriched properties
-            const eventProperties = await enhancedGetTrackingProperties(additionalProps);
-
-            // Prepare GA4 payload
-            const payload = {
-                client_id: uniqueUserId,
-                non_personalized_ads: false,
-                timestamp_micros: Date.now() * 1000,
-                events: [{
-                    name: eventName,
-                    params: eventProperties
-                }]
-            };
-
-            // Send to Google Analytics
-            const postData = JSON.stringify(payload);
-            
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(postData)
-                }
-            };
-
-            const result = await new Promise((resolve, reject) => {
-                const req = https.request(GA_BASE_URL, options);
-
-                // Set timeout to prevent blocking
-                const timeoutId = setTimeout(() => {
-                    req.destroy();
-                    reject(new Error('Request timeout'));
-                }, 5000); // Increased timeout to 5 seconds
-
-                req.on('error', (error) => {
-                    clearTimeout(timeoutId);
-                    reject(error);
-                });
-
-                req.on('response', (res) => {
-                    clearTimeout(timeoutId);
-                    let data = '';
-
-                    res.on('data', (chunk) => {
-                        data += chunk;
-                    });
-
-                    res.on('error', (error) => {
-                        reject(error);
-                    });
-
-                    res.on('end', () => {
-                        if (res.statusCode >= 200 && res.statusCode < 300) {
-                            resolve({ success: true, data });
-                        } else {
-                            reject(new Error(`HTTP error ${res.statusCode}: ${data}`));
-                        }
-                    });
-                });
-
-                req.write(postData);
-                req.end();
-            });
-
-            updateSetupStep(trackingStep, 'completed');
-            return result;
-
-        } catch (error) {
-            lastError = error;
-            if (attempt <= maxRetries) {
-                // Wait before retry (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-            }
-        }
-    }
-
-    // All retries failed
-    updateSetupStep(trackingStep, 'failed', lastError);
-    return false;
+    // No-op - telemetry removed for privacy
+    return true;
 }
 
 // Ensure tracking completes before process exits
@@ -324,14 +184,12 @@ function logToFile(message, isError = false) {
 
 // Setup global error handlers
 process.on('uncaughtException', async (error) => {
-    await trackEvent('npx_setup_uncaught_exception', { error: error.message });
     setTimeout(() => {
         process.exit(1);
     }, 1000);
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
-    await trackEvent('npx_setup_unhandled_rejection', { error: String(reason) });
     setTimeout(() => {
         process.exit(1);
     }, 1000);
