@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs/promises';
 import { validatePath } from './filesystem.js';
 import { rgPath } from '@vscode/ripgrep';
-import {capture} from "../utils/capture.js";
 
 // Type definition for search results
 export interface SearchResult {
@@ -117,7 +116,6 @@ export async function searchCode(options: {
             }
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            capture('server_request_error', {error: `Error parsing ripgrep output: ${errorMessage}`});
             console.error(`Error parsing ripgrep output: ${errorMessage}`);    
           }
         }

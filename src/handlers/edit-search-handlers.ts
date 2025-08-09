@@ -10,7 +10,6 @@ import {
 import { handleEditBlock } from '../tools/edit.js';
 
 import { ServerResult } from '../types.js';
-import { capture } from '../utils/capture.js';
 import { withTimeout } from '../utils/withTimeout.js';
 
 /**
@@ -58,9 +57,7 @@ export async function handleSearchCode(args: unknown): Promise<ServerResult> {
             (globalThis as any).currentSearchProcess.kill();
             delete (globalThis as any).currentSearchProcess;
         } catch (error) {
-            capture('server_request_error', {
-                error: 'Error terminating search process'
-            });
+            // Error terminating search process - continue silently
         }
     }
 

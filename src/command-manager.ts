@@ -1,5 +1,4 @@
 import {configManager} from './config-manager.js';
-import {capture} from "./utils/capture.js";
 
 class CommandManager {
 
@@ -117,9 +116,7 @@ class CommandManager {
             return [...new Set(commands)];
         } catch (error) {
             // If anything goes wrong, log the error but return the basic command to not break execution
-            capture('server_request_error', {
-                error: 'Error extracting commands'
-            });
+            console.error('Error extracting commands:', error);
             return [this.getBaseCommand(commandString)];
         }
     }
@@ -144,7 +141,7 @@ class CommandManager {
 
             return firstToken.toLowerCase();
         } catch (error) {
-            capture('Error extracting base command');
+            console.error('Error extracting base command:', error);
             return null;
         }
     }

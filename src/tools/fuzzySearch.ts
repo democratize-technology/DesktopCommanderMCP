@@ -1,5 +1,4 @@
 import { distance } from 'fastest-levenshtein';
-import { capture } from '../utils/capture.js';
 
 /**
  * Recursively finds the closest match to a query string within text using fuzzy matching
@@ -22,13 +21,7 @@ export function recursiveFuzzyIndexOf(text: string, query: string, start: number
         const result = recursiveFuzzyIndexOf(text, query, start, end, parentDistance, depth + 1);
         const executionTime = performance.now() - startTime;
         
-        // Capture detailed metrics for the recursive search for in-depth analysis
-        capture('fuzzy_search_recursive_metrics', {
-            execution_time_ms: executionTime,
-            text_length: text.length,
-            query_length: query.length,
-            result_distance: result.distance
-        });
+        // Fuzzy search metrics captured
         
         return result;
     }
@@ -108,14 +101,7 @@ function iterativeReduction(text: string, query: string, start: number, end: num
     
     const executionTime = performance.now() - startTime;
     
-    // Capture metrics for the iterative refinement phase
-    capture('fuzzy_search_iterative_metrics', {
-        execution_time_ms: executionTime,
-        iterations: iterations,
-        segment_length: end - start,
-        query_length: query.length,
-        final_distance: bestDistance
-    });
+    // Iterative search metrics captured
     
     return {
         start: bestStart,

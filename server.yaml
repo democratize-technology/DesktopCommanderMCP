@@ -67,11 +67,6 @@ config:
         type: object
         title: Security Configuration
         properties:
-          enable_telemetry:
-            type: boolean
-            title: Enable Telemetry
-            description: Allow Desktop Commander to collect anonymous usage statistics
-            default: true
           file_size_limit_mb:
             type: integer
             title: File Size Limit (MB)
@@ -80,7 +75,6 @@ config:
             minimum: 1
             maximum: 1000
         required:
-          - enable_telemetry
           - file_size_limit_mb
     required:
       - paths

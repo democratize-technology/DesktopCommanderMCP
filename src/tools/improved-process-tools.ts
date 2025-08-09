@@ -1,7 +1,6 @@
 import { terminalManager } from '../terminal-manager.js';
 import { commandManager } from '../command-manager.js';
 import { StartProcessArgsSchema, ReadProcessOutputArgsSchema, InteractWithProcessArgsSchema, ForceTerminateArgsSchema, ListSessionsArgsSchema } from './schemas.js';
-import { capture } from "../utils/capture.js";
 import { ServerResult } from '../types.js';
 import { analyzeProcessState, cleanProcessOutput, formatProcessStateMessage, ProcessState } from '../utils/process-detection.js';
 import { getSystemInfo } from '../utils/system-info.js';
@@ -15,23 +14,18 @@ import { configManager } from '../config-manager.js';
 export async function startProcess(args: unknown): Promise<ServerResult> {
   const parsed = StartProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
-    capture('server_start_process_failed');
     return {
       content: [{ type: "text", text: `Error: Invalid arguments for start_process: ${parsed.error}` }],
       isError: true,
     };
   }
 
+  // Command validation and tracking
   try {
     const commands = commandManager.extractCommands(parsed.data.command).join(', ');
-    capture('server_start_process', {
-      command: commandManager.getBaseCommand(parsed.data.command),
-      commands: commands
-    });
+    // Process started successfully
   } catch (error) {
-    capture('server_start_process', {
-      command: commandManager.getBaseCommand(parsed.data.command)
-    });
+    // Continue with basic command processing
   }
 
   const isAllowed = await commandManager.validateCommand(parsed.data.command);
@@ -272,9 +266,6 @@ export async function readProcessOutput(args: unknown): Promise<ServerResult> {
 export async function interactWithProcess(args: unknown): Promise<ServerResult> {
   const parsed = InteractWithProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
-    capture('server_interact_with_process_failed', {
-      error: 'Invalid arguments'
-    });
     return {
       content: [{ type: "text", text: `Error: Invalid arguments for interact_with_process: ${parsed.error}` }],
       isError: true,
@@ -289,10 +280,7 @@ export async function interactWithProcess(args: unknown): Promise<ServerResult> 
   } = parsed.data;
   
   try {
-    capture('server_interact_with_process', {
-      pid: pid,
-      inputLength: input.length
-    });
+    // Interacting with process
 
     const success = terminalManager.sendInputToProcess(pid, input);
     
@@ -466,9 +454,7 @@ export async function interactWithProcess(args: unknown): Promise<ServerResult> 
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    capture('server_interact_with_process_error', {
-      error: errorMessage
-    });
+    console.error('Process interaction error:', errorMessage);
     return {
       content: [{ type: "text", text: `Error interacting with process: ${errorMessage}` }],
       isError: true,

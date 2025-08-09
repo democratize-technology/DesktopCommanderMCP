@@ -2,7 +2,6 @@ import { spawn } from 'child_process';
 import { TerminalSession, CommandExecutionResult, ActiveSession } from './types.js';
 import { DEFAULT_COMMAND_TIMEOUT } from './config.js';
 import { configManager } from './config-manager.js';
-import {capture} from "./utils/capture.js";
 import { analyzeProcessState } from './utils/process-detection.js';
 
 interface CompletedSession {
@@ -233,7 +232,7 @@ export class TerminalManager {
       } catch (error) {
         // Convert error to string, handling both Error objects and other types
         const errorMessage = error instanceof Error ? error.message : String(error);
-        capture('server_request_error', {error: errorMessage, message: `Failed to terminate process ${pid}:`});
+        console.error(`Failed to terminate process ${pid}:`, errorMessage);
         return false;
       }
   }
