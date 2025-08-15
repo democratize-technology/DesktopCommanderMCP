@@ -20,7 +20,7 @@ export async function searchCode(options: {
   maxResults?: number,     // Limit number of results
   includeHidden?: boolean, // Whether to include hidden files
   contextLines?: number,   // Number of context lines before and after matches
-}): Promise<SearchResult[]> {
+}, signal?: AbortSignal): Promise<SearchResult[]> {
   const { 
     rootPath, 
     pattern, 
@@ -71,6 +71,28 @@ export async function searchCode(options: {
     
     // Store a reference to the child process for potential termination
     const childProcess: ChildProcess = rg;
+    
+    // Handle cancellation via AbortSignal
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        if (!childProcess.killed) {
+          try {
+            childProcess.kill('SIGTERM');
+            // Force kill after a brief delay if still running
+            setTimeout(() => {
+              if (!childProcess.killed) {
+                childProcess.kill('SIGKILL');
+              }
+            }, 1000);
+          } catch (error) {
+            console.error(`Error killing search process ${childProcess.pid}:`, error);
+          }
+        }
+        const error = new Error('Search operation was cancelled');
+        error.name = 'AbortError';
+        reject(error);
+      });
+    }
     
     // Store in a process list - this could be expanded to a global registry
     // of running search processes if needed for management
@@ -228,9 +250,9 @@ export async function searchTextInFiles(options: {
   maxResults?: number,
   includeHidden?: boolean,
   contextLines?: number,
-}): Promise<SearchResult[]> {
+}, signal?: AbortSignal): Promise<SearchResult[]> {
   try {
-    return await searchCode(options);
+    return await searchCode(options, signal);
   } catch (error) {
    return searchCodeFallback({
       ...options,

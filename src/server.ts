@@ -567,6 +567,10 @@ import {ServerResult} from './types.js';
 
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<ServerResult> => {
     const {name, arguments: args} = request.params;
+    
+    // Note: AbortSignal support would require MCP SDK updates
+    // For now, we'll pass undefined to maintain backward compatibility
+    const signal: AbortSignal | undefined = undefined;
 
     try {
         // Using a more structured approach with dedicated handlers
@@ -597,73 +601,73 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
             // Terminal tools
             case "start_process":
-                result = await handlers.handleStartProcess(args);
+                result = await handlers.handleStartProcess(args, signal);
                 break;
 
             case "read_process_output":
-                result = await handlers.handleReadProcessOutput(args);
+                result = await handlers.handleReadProcessOutput(args, signal);
                 break;
                 
             case "interact_with_process":
-                result = await handlers.handleInteractWithProcess(args);
+                result = await handlers.handleInteractWithProcess(args, signal);
                 break;
 
             case "force_terminate":
-                result = await handlers.handleForceTerminate(args);
+                result = await handlers.handleForceTerminate(args, signal);
                 break;
 
             case "list_sessions":
-                result = await handlers.handleListSessions();
+                result = await handlers.handleListSessions(signal);
                 break;
 
             // Process tools
             case "list_processes":
-                result = await handlers.handleListProcesses();
+                result = await handlers.handleListProcesses(signal);
                 break;
 
             case "kill_process":
-                result = await handlers.handleKillProcess(args);
+                result = await handlers.handleKillProcess(args, signal);
                 break;
 
             // Filesystem tools
             case "read_file":
-                result = await handlers.handleReadFile(args);
+                result = await handlers.handleReadFile(args, signal);
                 break;
 
             case "read_multiple_files":
-                result = await handlers.handleReadMultipleFiles(args);
+                result = await handlers.handleReadMultipleFiles(args, signal);
                 break;
 
             case "write_file":
-                result = await handlers.handleWriteFile(args);
+                result = await handlers.handleWriteFile(args, signal);
                 break;
 
             case "create_directory":
-                result = await handlers.handleCreateDirectory(args);
+                result = await handlers.handleCreateDirectory(args, signal);
                 break;
 
             case "list_directory":
-                result = await handlers.handleListDirectory(args);
+                result = await handlers.handleListDirectory(args, signal);
                 break;
 
             case "move_file":
-                result = await handlers.handleMoveFile(args);
+                result = await handlers.handleMoveFile(args, signal);
                 break;
 
             case "search_files":
-                result = await handlers.handleSearchFiles(args);
+                result = await handlers.handleSearchFiles(args, signal);
                 break;
 
             case "search_code":
-                result = await handlers.handleSearchCode(args);
+                result = await handlers.handleSearchCode(args, signal);
                 break;
 
             case "get_file_info":
-                result = await handlers.handleGetFileInfo(args);
+                result = await handlers.handleGetFileInfo(args, signal);
                 break;
 
             case "edit_block":
-                result = await handlers.handleEditBlock(args);
+                result = await handlers.handleEditBlock(args, signal);
                 break;
 
             default:
@@ -675,6 +679,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
         return result;
     } catch (error) {
+        // Handle AbortError specifically for cancellation scenarios
+        if (error instanceof Error && error.name === 'AbortError') {
+            return {
+                content: [{type: "text", text: `Operation was cancelled: ${error.message}`}],
+                isError: true,
+            };
+        }
+        
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
             content: [{type: "text", text: `Error: ${errorMessage}`}],

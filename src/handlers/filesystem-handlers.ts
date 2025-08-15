@@ -44,7 +44,7 @@ function getErrorFromPath(path: string): string {
 /**
  * Handle read_file command
  */
-export async function handleReadFile(args: unknown): Promise<ServerResult> {
+export async function handleReadFile(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     const HANDLER_TIMEOUT = 60000; // 60 seconds total operation timeout
     // Add input validation
     if (args === null || args === undefined) {
@@ -65,7 +65,7 @@ export async function handleReadFile(args: unknown): Promise<ServerResult> {
         const offset = parsed.offset ?? 0;
         const length = parsed.length ?? defaultLimit;
         
-        const fileResult = await readFile(parsed.path, parsed.isUrl, offset, length);
+        const fileResult = await readFile(parsed.path, parsed.isUrl, offset, length, signal);
         
         if (fileResult.isImage) {
             // For image files, return as an image content type
@@ -107,7 +107,7 @@ export async function handleReadFile(args: unknown): Promise<ServerResult> {
 /**
  * Handle read_multiple_files command
  */
-export async function handleReadMultipleFiles(args: unknown): Promise<ServerResult> {
+export async function handleReadMultipleFiles(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     const parsed = ReadMultipleFilesArgsSchema.parse(args);
     const fileResults = await readMultipleFiles(parsed.paths);
     
@@ -154,7 +154,7 @@ export async function handleReadMultipleFiles(args: unknown): Promise<ServerResu
 /**
  * Handle write_file command
  */
-export async function handleWriteFile(args: unknown): Promise<ServerResult> {
+export async function handleWriteFile(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = WriteFileArgsSchema.parse(args);
 
@@ -193,7 +193,7 @@ export async function handleWriteFile(args: unknown): Promise<ServerResult> {
 /**
  * Handle create_directory command
  */
-export async function handleCreateDirectory(args: unknown): Promise<ServerResult> {
+export async function handleCreateDirectory(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = CreateDirectoryArgsSchema.parse(args);
         await createDirectory(parsed.path);
@@ -209,7 +209,7 @@ export async function handleCreateDirectory(args: unknown): Promise<ServerResult
 /**
  * Handle list_directory command
  */
-export async function handleListDirectory(args: unknown): Promise<ServerResult> {
+export async function handleListDirectory(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = ListDirectoryArgsSchema.parse(args);
         const entries = await listDirectory(parsed.path);
@@ -225,7 +225,7 @@ export async function handleListDirectory(args: unknown): Promise<ServerResult> 
 /**
  * Handle move_file command
  */
-export async function handleMoveFile(args: unknown): Promise<ServerResult> {
+export async function handleMoveFile(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = MoveFileArgsSchema.parse(args);
         await moveFile(parsed.source, parsed.destination);
@@ -241,7 +241,7 @@ export async function handleMoveFile(args: unknown): Promise<ServerResult> {
 /**
  * Handle search_files command
  */
-export async function handleSearchFiles(args: unknown): Promise<ServerResult> {
+export async function handleSearchFiles(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = SearchFilesArgsSchema.parse(args);
         const timeoutMs = parsed.timeoutMs || 30000; // 30 seconds default
@@ -283,7 +283,7 @@ export async function handleSearchFiles(args: unknown): Promise<ServerResult> {
 /**
  * Handle get_file_info command
  */
-export async function handleGetFileInfo(args: unknown): Promise<ServerResult> {
+export async function handleGetFileInfo(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     try {
         const parsed = GetFileInfoArgsSchema.parse(args);
         const info = await getFileInfo(parsed.path);

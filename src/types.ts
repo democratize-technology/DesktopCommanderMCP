@@ -18,6 +18,10 @@ export interface TerminalSession {
   lastOutput: string;
   isBlocked: boolean;
   startTime: Date;
+  lastActivityTime: Date;
+  memoryUsageMB?: number;
+  cpuUsagePercent?: number;
+  isHealthy: boolean;
 }
 
 export interface CommandExecutionResult {
@@ -30,6 +34,9 @@ export interface ActiveSession {
   pid: number;
   isBlocked: boolean;
   runtime: number;
+  lastActivityTime: Date;
+  memoryUsageMB?: number;
+  isHealthy: boolean;
 }
 
 export interface CompletedSession {
@@ -38,6 +45,8 @@ export interface CompletedSession {
   exitCode: number | null;
   startTime: Date;
   endTime: Date;
+  maxMemoryUsageMB?: number;
+  reasonForCompletion: 'exit' | 'timeout' | 'killed' | 'error' | 'lru-evicted';
 }
 
 // Define the server response types
@@ -52,6 +61,40 @@ export interface ServerResult {
   content: ServerResponseContent[];
   isError?: boolean;
   _meta?: Record<string, unknown>;
+}
+
+// Session management configuration
+export interface SessionConfig {
+  maxActiveSessions: number;
+  maxCompletedSessions: number;
+  sessionTimeoutMs: number;
+  cleanupIntervalMs: number;
+  healthCheckIntervalMs: number;
+  memoryWarningThresholdMB: number;
+  memoryCriticalThresholdMB: number;
+  enableResourceMonitoring: boolean;
+}
+
+// Session diagnostics for monitoring
+export interface SessionDiagnostics {
+  activeSessions: number;
+  completedSessions: number;
+  memoryUsageMB: number;
+  oldestSessionAge: number;
+  unhealthySessions: number;
+  lastCleanupTime: Date;
+  resourcePressure: 'low' | 'medium' | 'high' | 'critical';
+}
+
+// Health monitoring status
+export interface SessionHealth {
+  pid: number;
+  isHealthy: boolean;
+  issues: string[];
+  lastChecked: Date;
+  memoryUsageMB?: number;
+  cpuUsagePercent?: number;
+  ageMs: number;
 }
 
 // Define a helper type for tool handler functions

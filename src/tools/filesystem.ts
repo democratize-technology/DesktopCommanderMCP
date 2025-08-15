@@ -286,13 +286,18 @@ export interface FileResult {
  * @param url URL to fetch content from
  * @returns File content or file result with metadata
  */
-export async function readFileFromUrl(url: string): Promise<FileResult> {
+export async function readFileFromUrl(url: string, signal?: AbortSignal): Promise<FileResult> {
     // Import the MIME type utilities
     const { isImageFile } = await import('./mime-types.js');
 
-    // Set up fetch with timeout
+    // Set up fetch with timeout and optional cancellation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FILE_OPERATION_TIMEOUTS.URL_FETCH);
+    
+    // If external signal is provided, forward its abort to our controller
+    if (signal) {
+        signal.addEventListener('abort', () => controller.abort());
+    }
     
     try {
         const response = await fetch(url, {
@@ -634,7 +639,7 @@ async function readFromEstimatedPosition(filePath: string, offset: number, lengt
  * @param length Maximum number of lines to read (default: from config or 1000)
  * @returns File content or file result with metadata
  */
-export async function readFileFromDisk(filePath: string, offset: number = 0, length?: number): Promise<FileResult> {
+export async function readFileFromDisk(filePath: string, offset: number = 0, length?: number, signal?: AbortSignal): Promise<FileResult> {
     // Add validation for required parameters
     if (!filePath || typeof filePath !== 'string') {
         throw new Error('Invalid file path provided');
@@ -719,10 +724,10 @@ export async function readFileFromDisk(filePath: string, offset: number = 0, len
  * @param length Maximum number of lines to read (default: from config or 1000)
  * @returns File content or file result with metadata
  */
-export async function readFile(filePath: string, isUrl?: boolean, offset?: number, length?: number): Promise<FileResult> {
+export async function readFile(filePath: string, isUrl?: boolean, offset?: number, length?: number, signal?: AbortSignal): Promise<FileResult> {
     return isUrl
-        ? readFileFromUrl(filePath)
-        : readFileFromDisk(filePath, offset, length);
+        ? readFileFromUrl(filePath, signal)
+        : readFileFromDisk(filePath, offset, length, signal);
 }
 
 /**

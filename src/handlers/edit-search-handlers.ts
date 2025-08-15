@@ -7,7 +7,7 @@ import {
     EditBlockArgsSchema
 } from '../tools/schemas.js';
 
-import { handleEditBlock } from '../tools/edit.js';
+import { handleEditBlock as originalHandleEditBlock } from '../tools/edit.js';
 
 import { ServerResult } from '../types.js';
 import { withTimeout } from '../utils/withTimeout.js';
@@ -16,12 +16,14 @@ import { withTimeout } from '../utils/withTimeout.js';
  * Handle edit_block command
  * Uses the enhanced implementation with multiple occurrence support and fuzzy matching
  */
-export { handleEditBlock };
+export async function handleEditBlock(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
+    return originalHandleEditBlock(args, signal);
+}
 
 /**
  * Handle search_code command
  */
-export async function handleSearchCode(args: unknown): Promise<ServerResult> {
+export async function handleSearchCode(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     const parsed = SearchCodeArgsSchema.parse(args);
     const timeoutMs = parsed.timeoutMs || 30000; // 30 seconds default
 
@@ -39,7 +41,7 @@ export async function handleSearchCode(args: unknown): Promise<ServerResult> {
             includeHidden: parsed.includeHidden,
             contextLines: parsed.contextLines,
             // Don't pass timeoutMs down to the implementation
-        });
+        }, signal);
     };
 
     // Use withTimeout at the handler level

@@ -6,10 +6,10 @@ import { KillProcessArgsSchema } from './schemas.js';
 
 const execAsync = promisify(exec);
 
-export async function listProcesses(): Promise<ServerResult> {
+export async function listProcesses(signal?: AbortSignal): Promise<ServerResult> {
   const command = os.platform() === 'win32' ? 'tasklist' : 'ps aux';
   try {
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAsync(command, { signal });
     const processes = stdout.split('\n')
       .slice(1)
       .filter(Boolean)
@@ -39,7 +39,7 @@ export async function listProcesses(): Promise<ServerResult> {
   }
 }
 
-export async function killProcess(args: unknown): Promise<ServerResult> {
+export async function killProcess(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = KillProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
     return {

@@ -203,7 +203,7 @@ function highlightDifferences(expected: string, actual: string): string {
  * - Validates expected replacements count
  * - Provides detailed error messages
  */
-export async function handleEditBlock(args: unknown): Promise<ServerResult> {
+export async function handleEditBlock(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     const parsed = EditBlockArgsSchema.parse(args);
     
     const searchReplace = {

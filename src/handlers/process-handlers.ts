@@ -12,14 +12,14 @@ import { ServerResult } from '../types.js';
 /**
  * Handle list_processes command
  */
-export async function handleListProcesses(): Promise<ServerResult> {
-    return listProcesses();
+export async function handleListProcesses(signal?: AbortSignal): Promise<ServerResult> {
+    return listProcesses(signal);
 }
 
 /**
  * Handle kill_process command
  */
-export async function handleKillProcess(args: unknown): Promise<ServerResult> {
+export async function handleKillProcess(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
     const parsed = KillProcessArgsSchema.parse(args);
-    return killProcess(parsed);
+    return killProcess(parsed, signal);
 }
