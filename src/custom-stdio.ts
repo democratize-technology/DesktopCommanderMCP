@@ -12,8 +12,8 @@ interface LogNotification {
 }
 
 /**
- * Enhanced StdioServerTransport that wraps console output in valid JSON-RPC structures
- * instead of filtering them out. This prevents crashes while maintaining debug visibility.
+ * Enhanced StdioServerTransport that filters console output to prevent
+ * polluting the JSON-RPC stream while preserving stderr for debugging.
  */
 export class FilteredStdioServerTransport extends StdioServerTransport {
   private originalConsole: {
@@ -39,35 +39,37 @@ export class FilteredStdioServerTransport extends StdioServerTransport {
     
     this.originalStdoutWrite = process.stdout.write;
     
-    // Setup console redirection
+    // Setup console redirection - but NOT for console.error!
     this.setupConsoleRedirection();
     
     // Setup stdout filtering for any other output
     this.setupStdoutFiltering();
     
     // Log initialization to stderr to avoid polluting the JSON stream
-    process.stderr.write(`[desktop-commander] Enhanced FilteredStdioServerTransport initialized\n`);
+    process.stderr.write(`[desktop-commander] FilteredStdioServerTransport initialized\n`);
   }
 
   private setupConsoleRedirection() {
+    // Redirect console.log to stderr to prevent stdout pollution
     console.log = (...args: any[]) => {
-      this.sendLogNotification("info", args);
+      process.stderr.write(`[LOG] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`);
     };
 
     console.info = (...args: any[]) => {
-      this.sendLogNotification("info", args);
+      process.stderr.write(`[INFO] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`);
     };
 
     console.warn = (...args: any[]) => {
-      this.sendLogNotification("warning", args);
+      process.stderr.write(`[WARN] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`);
     };
 
+    // CRITICAL: Keep console.error going to stderr, NOT as JSON-RPC notifications!
     console.error = (...args: any[]) => {
-      this.sendLogNotification("error", args);
+      process.stderr.write(`[ERROR] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`);
     };
 
     console.debug = (...args: any[]) => {
-      this.sendLogNotification("debug", args);
+      process.stderr.write(`[DEBUG] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`);
     };
   }
 
@@ -86,8 +88,8 @@ export class FilteredStdioServerTransport extends StdioServerTransport {
           // This looks like a valid JSON-RPC message, allow it
           return this.originalStdoutWrite.call(process.stdout, buffer, encoding, callback);
         } else if (trimmed.length > 0) {
-          // Non-JSON-RPC output, wrap it in a log notification
-          this.sendLogNotification("info", [buffer.replace(/\n$/, '')]);
+          // Non-JSON-RPC output, send to stderr instead
+          process.stderr.write(`[STDOUT] ${buffer}`);
           if (callback) callback();
           return true;
         }
@@ -98,118 +100,47 @@ export class FilteredStdioServerTransport extends StdioServerTransport {
     };
   }
 
-  private sendLogNotification(level: "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug", args: any[]) {
-    try {
-      // For data, we can send structured data or string according to MCP spec
-      let data: any;
-      if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
-        // Single object - send as structured data
-        data = args[0];
-      } else {
-        // Multiple args or primitives - convert to string
-        data = args.map(arg => {
-          if (typeof arg === 'object') {
-            try {
-              return JSON.stringify(arg, null, 2);
-            } catch {
-              return String(arg);
-            }
-          }
+  private sendLogNotification(level: LogNotification["params"]["level"], args: any[]) {
+    // Convert args to a single string message
+    const message = args.map(arg => {
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg);
+        } catch {
           return String(arg);
-        }).join(' ');
+        }
       }
+      return String(arg);
+    }).join(' ');
 
-      const notification: LogNotification = {
-        jsonrpc: "2.0",
-        method: "notifications/message",
-        params: {
-          level: level,
-          logger: "desktop-commander",
-          data: data
-        }
-      };
+    const notification: LogNotification = {
+      jsonrpc: "2.0",
+      method: "notifications/message",
+      params: {
+        level,
+        logger: "desktop-commander",
+        data: message,
+      },
+    };
 
-      // Send as valid JSON-RPC notification
-      this.originalStdoutWrite.call(process.stdout, JSON.stringify(notification) + '\n');
-    } catch (error) {
-      // Fallback to stderr if JSON serialization fails
-      process.stderr.write(`[${level.toUpperCase()}] ${args.join(' ')}\n`);
-    }
+    // Send the notification through the original stdout
+    this.originalStdoutWrite.call(process.stdout, JSON.stringify(notification) + '\n');
   }
 
   /**
-   * Public method to send log notifications from anywhere in the application
-   */
-  public sendLog(level: "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug", message: string, data?: any) {
-    try {
-      const notification: LogNotification = {
-        jsonrpc: "2.0",
-        method: "notifications/message",
-        params: {
-          level: level,
-          logger: "desktop-commander",
-          data: data ? { message, ...data } : message
-        }
-      };
-
-      this.originalStdoutWrite.call(process.stdout, JSON.stringify(notification) + '\n');
-    } catch (error) {
-      process.stderr.write(`[${level.toUpperCase()}] ${message}\n`);
-    }
-  }
-
-  /**
-   * Send a progress notification (useful for long-running operations)
-   */
-  public sendProgress(token: string, value: number, total?: number) {
-    try {
-      const notification = {
-        jsonrpc: "2.0" as const,
-        method: "notifications/progress",
-        params: {
-          progressToken: token,
-          value: value,
-          ...(total && { total })
-        }
-      };
-      
-      this.originalStdoutWrite.call(process.stdout, JSON.stringify(notification) + '\n');
-    } catch (error) {
-      process.stderr.write(`[PROGRESS] ${token}: ${value}${total ? `/${total}` : ''}\n`);
-    }
-  }
-
-  /**
-   * Send a custom notification with any method name
-   */
-  public sendCustomNotification(method: string, params: any) {
-    try {
-      const notification = {
-        jsonrpc: "2.0" as const,
-        method: method,
-        params: params
-      };
-      
-      this.originalStdoutWrite.call(process.stdout, JSON.stringify(notification) + '\n');
-    } catch (error) {
-      process.stderr.write(`[NOTIFICATION] ${method}: ${JSON.stringify(params)}\n`);
-    }
-  }
-
-  /**
-   * Cleanup method to restore original console methods if needed
+   * Clean up and restore original console methods
    */
   public cleanup() {
-    if (this.originalConsole) {
-      console.log = this.originalConsole.log;
-      console.warn = this.originalConsole.warn;
-      console.error = this.originalConsole.error;
-      console.debug = this.originalConsole.debug;
-      console.info = this.originalConsole.info;
-    }
+    // Restore original console methods
+    console.log = this.originalConsole.log;
+    console.warn = this.originalConsole.warn;
+    console.error = this.originalConsole.error;
+    console.debug = this.originalConsole.debug;
+    console.info = this.originalConsole.info;
     
-    if (this.originalStdoutWrite) {
-      process.stdout.write = this.originalStdoutWrite;
-    }
+    // Restore original stdout write
+    process.stdout.write = this.originalStdoutWrite;
+    
+    process.stderr.write('[desktop-commander] FilteredStdioServerTransport cleaned up\n');
   }
 }
