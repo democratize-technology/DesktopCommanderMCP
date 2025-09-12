@@ -563,6 +563,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 import * as handlers from './handlers/index.js';
+import {createErrorResponse} from './error-handlers.js';
 import {ServerResult} from './types.js';
 
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<ServerResult> => {
@@ -582,20 +583,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
                 try {
                     result = await getConfig();
                 } catch (error) {
-                    result = {
-                        content: [{type: "text", text: `Error: Failed to get configuration`}],
-                        isError: true,
-                    };
+                    result = createErrorResponse('Failed to get configuration');
                 }
                 break;
             case "set_config_value":
                 try {
                     result = await setConfigValue(args);
                 } catch (error) {
-                    result = {
-                        content: [{type: "text", text: `Error: Failed to set configuration value`}],
-                        isError: true,
-                    };
+                    result = createErrorResponse('Failed to set configuration value');
                 }
                 break;
 
@@ -671,26 +666,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
                 break;
 
             default:
-                result = {
-                    content: [{type: "text", text: `Error: Unknown tool: ${name}`}],
-                    isError: true,
-                };
+                result = createErrorResponse(`Unknown tool: ${name}`);
         }
 
         return result;
     } catch (error) {
         // Handle AbortError specifically for cancellation scenarios
         if (error instanceof Error && error.name === 'AbortError') {
-            return {
-                content: [{type: "text", text: `Operation was cancelled: ${error.message}`}],
-                isError: true,
-            };
+            return createErrorResponse(`Operation was cancelled: ${error.message}`);
         }
         
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return {
-            content: [{type: "text", text: `Error: ${errorMessage}`}],
-            isError: true,
-        };
+        return createErrorResponse(errorMessage);
     }
 });

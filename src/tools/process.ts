@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
+import { createErrorResponse } from '../error-handlers.js';
 import { ProcessInfo, ServerResult } from '../types.js';
 import { KillProcessArgsSchema } from './schemas.js';
 
@@ -32,20 +33,14 @@ export async function listProcesses(signal?: AbortSignal): Promise<ServerResult>
       }],
     };
   } catch (error) {
-    return {
-      content: [{ type: "text", text: `Error: Failed to list processes: ${error instanceof Error ? error.message : String(error)}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Failed to list processes: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 export async function killProcess(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = KillProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{ type: "text", text: `Error: Invalid arguments for kill_process: ${parsed.error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Invalid arguments for kill_process: ${parsed.error}`);
   }
 
   try {
@@ -54,9 +49,6 @@ export async function killProcess(args: unknown, signal?: AbortSignal): Promise<
       content: [{ type: "text", text: `Successfully terminated process ${parsed.data.pid}` }],
     };
   } catch (error) {
-    return {
-      content: [{ type: "text", text: `Error: Failed to kill process: ${error instanceof Error ? error.message : String(error)}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Failed to kill process: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

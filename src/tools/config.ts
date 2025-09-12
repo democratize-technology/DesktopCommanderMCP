@@ -1,4 +1,5 @@
 import { configManager, ServerConfig } from '../config-manager.js';
+import { createErrorResponse } from '../error-handlers.js';
 import { SetConfigValueArgsSchema } from './schemas.js';
 import { getSystemInfo } from '../utils/system-info.js';
 import { currentClient } from '../server.js';
@@ -57,13 +58,7 @@ export async function setConfigValue(args: unknown) {
     const parsed = SetConfigValueArgsSchema.safeParse(args);
     if (!parsed.success) {
       console.error(`Invalid arguments for set_config_value: ${parsed.error}`);
-      return {
-        content: [{
-          type: "text",
-          text: `Invalid arguments: ${parsed.error}`
-        }],
-        isError: true
-      };
+      return createErrorResponse(`Invalid arguments: ${parsed.error}`);
     }
 
     try {
@@ -119,23 +114,11 @@ export async function setConfigValue(args: unknown) {
     } catch (saveError: any) {
       console.error(`Error saving config: ${saveError.message}`);
       // Continue with in-memory change but report error
-      return {
-        content: [{
-          type: "text", 
-          text: `Value changed in memory but couldn't be saved to disk: ${saveError.message}`
-        }],
-        isError: true
-      };
+      return createErrorResponse(`Value changed in memory but couldn't be saved to disk: ${saveError.message}`);
     }
   } catch (error) {
     console.error(`Error in setConfigValue: ${error instanceof Error ? error.message : String(error)}`);
     console.error(error instanceof Error && error.stack ? error.stack : 'No stack trace available');
-    return {
-      content: [{
-        type: "text",
-        text: `Error setting value: ${error instanceof Error ? error.message : String(error)}`
-      }],
-      isError: true
-    };
+    return createErrorResponse(`Error setting value: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

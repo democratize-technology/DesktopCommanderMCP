@@ -1,5 +1,6 @@
 import { terminalManager } from '../terminal-manager.js';
 import { commandManager } from '../command-manager.js';
+import { createErrorResponse } from '../error-handlers.js';
 import { StartProcessArgsSchema, ReadProcessOutputArgsSchema, InteractWithProcessArgsSchema, ForceTerminateArgsSchema, ListSessionsArgsSchema } from './schemas.js';
 import { ServerResult } from '../types.js';
 import { analyzeProcessState, cleanProcessOutput, formatProcessStateMessage, ProcessState } from '../utils/process-detection.js';
@@ -222,10 +223,7 @@ class ResourceManager {
 export async function startProcess(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = StartProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{ type: "text", text: `Error: Invalid arguments for start_process: ${parsed.error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Invalid arguments for start_process: ${parsed.error}`);
   }
 
   // Command validation and tracking
@@ -238,10 +236,7 @@ export async function startProcess(args: unknown, signal?: AbortSignal): Promise
 
   const isAllowed = await commandManager.validateCommand(parsed.data.command);
   if (!isAllowed) {
-    return {
-      content: [{ type: "text", text: `Error: Command not allowed: ${parsed.data.command}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Command not allowed: ${parsed.data.command}`);
   }
 
   let shellUsed: string | undefined = parsed.data.shell;
@@ -270,10 +265,7 @@ export async function startProcess(args: unknown, signal?: AbortSignal): Promise
   );
 
   if (result.pid === -1) {
-    return {
-      content: [{ type: "text", text: result.output }],
-      isError: true,
-    };
+    return createErrorResponse(result.output);
   }
 
   // Analyze the process state to detect if it's waiting for input
@@ -303,20 +295,14 @@ export async function startProcess(args: unknown, signal?: AbortSignal): Promise
 export async function readProcessOutput(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = ReadProcessOutputArgsSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{ type: "text", text: `Error: Invalid arguments for read_process_output: ${parsed.error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Invalid arguments for read_process_output: ${parsed.error}`);
   }
 
   const { pid, timeout_ms = 5000 } = parsed.data;
 
   const session = terminalManager.getSession(pid);
   if (!session) {
-    return {
-      content: [{ type: "text", text: `No active session found for PID ${pid}` }],
-      isError: true,
-    };
+    return createErrorResponse(`No active session found for PID ${pid}`);
   }
 
   // Create resource manager for this operation
@@ -443,10 +429,7 @@ export async function readProcessOutput(args: unknown, signal?: AbortSignal): Pr
     }
 
   } catch (error) {
-    return {
-      content: [{ type: "text", text: `Error reading output: ${error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Error reading output: ${error}`);
   } finally {
     // Ensure all resources are cleaned up
     resourceManager.cleanup();
@@ -479,10 +462,7 @@ export async function readProcessOutput(args: unknown, signal?: AbortSignal): Pr
 export async function interactWithProcess(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = InteractWithProcessArgsSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{ type: "text", text: `Error: Invalid arguments for interact_with_process: ${parsed.error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Invalid arguments for interact_with_process: ${parsed.error}`);
   }
 
   const { 
@@ -504,10 +484,7 @@ export async function interactWithProcess(args: unknown, signal?: AbortSignal): 
     const success = terminalManager.sendInputToProcess(pid, input);
     
     if (!success) {
-      return {
-        content: [{ type: "text", text: `Error: Failed to send input to process ${pid}. The process may have exited or doesn't accept input.` }],
-        isError: true,
-      };
+      return createErrorResponse(`Failed to send input to process ${pid}. The process may have exited or doesn't accept input.`);
     }
 
     // If not waiting for response, return immediately
@@ -670,10 +647,7 @@ export async function interactWithProcess(args: unknown, signal?: AbortSignal): 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Process interaction error:', errorMessage);
-    return {
-      content: [{ type: "text", text: `Error interacting with process: ${errorMessage}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Error interacting with process: ${errorMessage}`);
   } finally {
     // Ensure all resources are cleaned up
     resourceManager.cleanup();
@@ -686,10 +660,7 @@ export async function interactWithProcess(args: unknown, signal?: AbortSignal): 
 export async function forceTerminate(args: unknown, signal?: AbortSignal): Promise<ServerResult> {
   const parsed = ForceTerminateArgsSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{ type: "text", text: `Error: Invalid arguments for force_terminate: ${parsed.error}` }],
-      isError: true,
-    };
+    return createErrorResponse(`Invalid arguments for force_terminate: ${parsed.error}`);
   }
 
   const success = terminalManager.forceTerminate(parsed.data.pid);
