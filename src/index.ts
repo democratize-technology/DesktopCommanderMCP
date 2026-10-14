@@ -202,6 +202,17 @@ async function runServer() {
       // Continue anyway - we'll use an in-memory config
     }
 
+    // Jobs hard-compute condom: filesystem-only tools + pinned allowedDirectories.
+    // Fail closed before connect if MODE=filesystem and dirs are missing/unsafe.
+    const { applyFilesystemModeOrDie } = await import('./filesystem-mode.js');
+    try {
+      await applyFilesystemModeOrDie();
+    } catch (fsModeError) {
+      const msg = fsModeError instanceof Error ? fsModeError.message : String(fsModeError);
+      console.error(`FATAL: filesystem mode refused to start: ${msg}`);
+      process.exit(1);
+    }
+
     console.error("Connecting server...");
     await server.connect(transport);
     console.error("Server connected successfully");

@@ -41,6 +41,7 @@ import {
     EditBlockArgsSchema,
 } from './tools/schemas.js';
 import {getConfig, setConfigValue} from './tools/config.js';
+import { filterToolsForMode, assertToolAllowedInFilesystemMode } from './filesystem-mode.js';
 
 import {VERSION} from './version.js';
 
@@ -119,8 +120,7 @@ console.error("Setting up request handlers...");
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     try {
         console.error("Generating tools list...");
-        return {
-            tools: [
+        const tools = [
                 // Configuration tools
                 {
                     name: "get_config",
@@ -554,8 +554,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         ${CMD_PREFIX_DESCRIPTION}`,
                     inputSchema: zodToJsonSchema(KillProcessArgsSchema),
                 },
-            ],
-        };
+        ];
+        return { tools: filterToolsForMode(tools) };
     } catch (error) {
         console.error("Error in list_tools request handler:", error);
         throw error;
@@ -574,6 +574,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     const signal: AbortSignal | undefined = undefined;
 
     try {
+        // Filesystem mode: refuse process/config tools even if a client calls them by name.
+        try {
+            assertToolAllowedInFilesystemMode(name);
+        } catch (modeError) {
+            return createErrorResponse(
+                modeError instanceof Error ? modeError.message : String(modeError),
+            );
+        }
+
         // Using a more structured approach with dedicated handlers
         let result: ServerResult;
 

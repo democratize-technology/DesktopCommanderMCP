@@ -171,9 +171,15 @@ async function validateParentDirectories(directoryPath: string): Promise<boolean
  * @returns boolean True if path is allowed
  */
 async function isPathAllowed(pathToCheck: string): Promise<boolean> {
-    // If root directory is allowed, all paths are allowed
+    const { isFilesystemMode } = await import('../filesystem-mode.js');
+    // If root directory is allowed, all paths are allowed — except in filesystem
+    // mode, which refuses empty dirs and "/" at boot and must never open up here.
     const allowedDirectories = await getAllowedDirs();
-    if (allowedDirectories.includes('/') || allowedDirectories.length === 0) {
+    if (isFilesystemMode()) {
+        if (allowedDirectories.length === 0 || allowedDirectories.includes('/')) {
+            return false;
+        }
+    } else if (allowedDirectories.includes('/') || allowedDirectories.length === 0) {
         return true;
     }
 
